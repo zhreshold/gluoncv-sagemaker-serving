@@ -13,6 +13,7 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
          python3-dev \
          nginx \
          ca-certificates \
+         libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/python3 /usr/bin/python & \
