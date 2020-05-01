@@ -1,5 +1,7 @@
 import subprocess
 import sys
+import os
+os.chdir(os.path.join(os.path.dirname(__file__), 'container'))
 
 import gluoncv as gcv
 
@@ -7,7 +9,7 @@ def build_image_classification(models):
     for model in models:
         try:
             print('Building for {}...'.format(model))
-            subprocess.check_output(['container/build_and_push.sh',
+            subprocess.check_output(['build_and_push.sh',
                                      'gluoncv-{}'.format(model),
                                      'image_classification'])
         except subprocess.CalledProcessError as e:
