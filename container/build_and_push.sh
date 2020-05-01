@@ -8,7 +8,13 @@
 image=$1
 app=$2
 
-if [ "$image" == "" || "$app" == "" ]
+if [ "$image" == "" ]
+then
+    echo "Usage: $0 <image-name> <app-name>"
+    exit 1
+fi
+
+if [ "$app" == "" ]
 then
     echo "Usage: $0 <image-name> <app-name>"
     exit 1
