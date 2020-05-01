@@ -21,7 +21,7 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
 # a significant amount of space. These optimizations save a fair amount of space in the
 # image, which reduces start up time.
 RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py && \
-    pip install numpy scipy scikit-learn pandas flask gevent gunicorn mxnet-mkl==1.6.0 gluoncv==0.7.0 && \
+    pip install numpy scipy flask gevent gunicorn mxnet-mkl==1.6.0 gluoncv==0.7.0 && \
         rm -rf /root/.cache
 
 # Set some environment variables. PYTHONUNBUFFERED keeps Python from buffering our standard
