@@ -6,6 +6,7 @@ FROM ubuntu:18.04
 
 MAINTAINER Amazon AI <sage-learner@amazon.com>
 
+ARG APP=image_classification
 
 RUN apt-get -y update && apt-get install -y --no-install-recommends \
          wget \
@@ -33,5 +34,5 @@ ENV PYTHONDONTWRITEBYTECODE=TRUE
 ENV PATH="/opt/program:${PATH}"
 
 # Set up the program in the image
-COPY image_classification /opt/program
+COPY $APP /opt/program
 WORKDIR /opt/program
