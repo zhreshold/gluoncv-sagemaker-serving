@@ -10,10 +10,13 @@ ARG APP=image_classification
 
 RUN apt-get -y update && apt-get install -y --no-install-recommends \
          wget \
-         python \
+         python3-dev \
          nginx \
          ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/python3 /usr/bin/python & \
+    ln -s /usr/bin/pip3 /usr/bin/pip
 
 # Here we get all python packages.
 # There's substantial overlap between scipy and numpy that we eliminate by
