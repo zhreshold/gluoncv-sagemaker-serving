@@ -6,7 +6,6 @@ from __future__ import print_function
 import os
 import json
 import pickle
-import StringIO
 import sys
 import signal
 import traceback
@@ -16,6 +15,7 @@ import flask
 import math
 import numpy as np
 import mxnet as mx
+from mxnet import nd
 from mxnet.gluon.data.vision import transforms
 import gluoncv as gcv
 from gluoncv.data import ImageNet1kAttr
@@ -26,7 +26,7 @@ model_path = os.path.join(prefix, 'model')
 artifact_file = os.path.join(model_path, 'artifact.json')
 mode_name = None
 preprocessor = None
-classes = ImageNet1kAttr()
+classes = ImageNet1kAttr().classes
 with open(artifact_file) as json_file:
     artifact = json.load(json_file)
     model_name = artifact['model_name']
@@ -74,11 +74,12 @@ class ScoringService(object):
                 one prediction per row in the dataframe"""
         clf = cls.get_model()
         pred = clf(input)
-        ind = nd.topk(pred, k=5)[0].astype('int')
+        topk = 5
+        ind = nd.topk(pred, k=topk)[0].astype('int')
         scores = nd.softmax(pred)
         responses = []
-        for i in range(topK):
-            responses.append('\t[%s], with probability %.3f.'%
+        for i in range(topk):
+            responses.append('[%s], with probability %.3f.\n'%
                   (classes[ind[i].asscalar()], scores[0][ind[i]].asscalar()))
         return ''.join(responses)
 

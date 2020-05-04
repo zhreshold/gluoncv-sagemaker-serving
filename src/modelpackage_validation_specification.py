@@ -2,7 +2,7 @@ import json
 
 class ModelPackageValidationSpecification:
     template = """
-{    
+{
     "ValidationSpecification": {
         "ValidationRole": "ROLE_REPLACE_ME",
         "ValidationProfiles": [
@@ -10,7 +10,7 @@ class ModelPackageValidationSpecification:
                 "ProfileName": "ValidationProfile1",
                 "TransformJobDefinition": {
                     "MaxConcurrentTransforms": 1,
-                    "MaxPayloadInMB": 6,
+                    "MaxPayloadInMB": 10,
                     "TransformInput": {
                         "DataSource": {
                             "S3DataSource": {
@@ -20,12 +20,12 @@ class ModelPackageValidationSpecification:
                         },
                         "ContentType": "CONTENT_TYPE_REPLACE_ME",
                         "CompressionType": "None",
-                        "SplitType": "Line"
+                        "SplitType": "None"
                     },
                     "TransformOutput": {
                         "S3OutputPath": "VALIDATION_S3_OUTPUT_REPLACE_ME/batch-transform-output",
                         "Accept": "CONTENT_TYPE_REPLACE_ME",
-                        "AssembleWith": "Line",
+                        "AssembleWith": "None",
                         "KmsKeyId": ""
                     },
                     "TransformResources": {
@@ -36,7 +36,7 @@ class ModelPackageValidationSpecification:
             }
         ]
     }
-}    
+}
 """
 
     def get_validation_specification_dict(self, validation_role, batch_transform_input, content_type, instance_type, output_s3_location):
