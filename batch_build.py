@@ -4,6 +4,10 @@ import os
 import argparse
 import json
 import time
+from multiprocessing.pool import ThreadPool
+import threading
+import pickle
+import atexit
 
 from sagemaker import get_execution_role
 import sagemaker as sage
@@ -12,6 +16,26 @@ from src.inference_specification import InferenceSpecification
 from src.modelpackage_validation_specification import ModelPackageValidationSpecification
 
 import gluoncv as gcv
+from tqdm import tqdm
+
+def parse_args():
+    parser = argparse.ArgumentParser('Build and pack model package.')
+    parser.add_argument('--parallel', type=int, default=8, help="Simultaneously build N models")
+    parser.add_argument('--deploy-test', action='store_true', help="If set, deploy and test model after training")
+    parser.add_argument('--cache', type=str, default='cache.pkl', help='If specified, use it to store/resume previous build')
+
+args = parse_args()
+cache = []
+if args.cache:
+    with open(args.cache, 'r') as f:
+        cache = pickle.load(f)
+
+def save_cache():
+    if args.cache:
+        with open(args.cache, 'w') as f:
+            pickle.dump(cache, f)
+
+atexit.register(save_cache)
 
 def build(app):
     try:
@@ -24,13 +48,15 @@ def build(app):
         print(out_bytes)
         sys.exit(code)
 
-def build_image_classification(models):
+def build_image_classification(list_file):
+    with open(list_file, 'rt') as f:
+        models = [m.strip() for m in f.readlines()]
     build('image_classification')
-    for model in models:
-        print(model, '...')
-        build_image_classification_impl(model)
+    models = [m in models if m not in cache]
+    with Pool(args.parallel) as p:
+        r = list(tqdm(p.imap(build_image_classification_impl, models)), total=len(models))
 
-def build_image_classification_impl(model_name, deploy_test=False, region='us-west-2'):
+def build_image_classification_impl(model_name):
     # role
     common_prefix = "DEMO-gluoncv-model-zoo"
     training_input_prefix = common_prefix + "/training-input-data"
@@ -46,7 +72,7 @@ def build_image_classification_impl(model_name, deploy_test=False, region='us-we
     training_input = sess.upload_data(TRAINING_WORKDIR, key_prefix=training_input_prefix)
     print ("Training Data Location " + training_input)
     classifier = sage.estimator.Estimator(image,
-                           role, 1, 'ml.c4.2xlarge',
+                           role, 1, 'ml.t2.medium',
                            output_path="s3://{}/output".format(sess.default_bucket()),
                            sagemaker_session=sess,
                            hyperparameters={'model_name': model_name})
@@ -57,7 +83,7 @@ def build_image_classification_impl(model_name, deploy_test=False, region='us-we
     transform_input = sess.upload_data(TRANSFORM_WORKDIR, key_prefix=batch_inference_input_prefix) + "/cat1.jpg"
 
     # deploy
-    if deploy_test:
+    if args.deploy_test:
         model = classifier.create_model()
         predictor = classifier.deploy(1, 'ml.m4.xlarge')
         with open('data/transform/cat1.jpg', 'rb') as f:
@@ -83,7 +109,7 @@ def build_image_classification_impl(model_name, deploy_test=False, region='us-we
         instance_type = "ml.c4.xlarge",
         output_s3_location = 's3://{}/{}'.format(sess.default_bucket(), common_prefix))
 
-    model_package_name = "gluoncv-{}".format(model_name.replace('_', '-')) + str(round(time.time()))
+    model_package_name = "gluoncv-{}-".format(model_name.replace('_', '-')) + str(round(time.time()))
     create_model_package_input_dict = {
         "ModelPackageName" : model_package_name,
         "ModelPackageDescription" : "Model to perform image classification or extract image features by deep learning",
@@ -104,5 +130,4 @@ def build_image_classification_impl(model_name, deploy_test=False, region='us-we
         time.sleep(5)
 
 if __name__ == '__main__':
-    image_classification_models = ['resnet50_v1b', 'mobilenetv3_large']
-    build_image_classification(image_classification_models)
+    build_image_classification('image_classification.txt')

@@ -54,25 +54,40 @@ if not model_name or not preprocessor:
 # It has a predict function that does a prediction based on the model and the input data.
 
 class ScoringService(object):
-    model = None                # Where we keep the model when it's loaded
+    model = {}                # Where we keep the model when it's loaded
 
     @classmethod
-    def get_model(cls):
+    def get_model(cls, feature=''):
         """Get the model object for this instance, loading it if it's not already loaded."""
-        if cls.model == None:
-            cls.model = gcv.model_zoo.get_model(model_name)
-            cls.model.load_parameters(os.path.join(model_path, 'model.params'))
-            cls.model.hybridize(static_alloc=True, static_shape=True)
-        return cls.model
+        if cls.model.get(feature, None) == None:
+            net = gcv.model_zoo.get_model(model_name)
+            net.load_parameters(os.path.join(model_path, 'model.params'))
+            if feature == '':
+                model = net
+            else:
+                if feature not in list(net._children):
+                    raise ValueError('Layer: {} does not exist in network, available choices are: \n' +
+                        '\n'.join(list(net._children)))
+                model = mx.gluon.nn.HybridSequential(prefix=feature)
+                for child in list(net._children):
+                    model.add(getattr(net, child))
+                    if child == feature:
+                        break
+            model.hybridize(static_alloc=True, static_shape=True)
+            cls.model[feature] = model
+        return cls.model[feature]
 
     @classmethod
-    def predict(cls, input):
+    def predict(cls, input, feature=''):
         """For the input, do the predictions and return them.
 
         Args:
             input (a pandas dataframe): The data on which to do the predictions. There will be
                 one prediction per row in the dataframe"""
-        clf = cls.get_model()
+        clf = cls.get_model(feature)
+        if feature:
+            print('Customized feature extraction:', feature)
+            return np.array2string(clf(input).asnumpy(), separator=',', threshold=np.inf)
         pred = clf(input)
         topk = 5
         ind = nd.topk(pred, k=topk)[0].astype('int')
@@ -111,9 +126,17 @@ def transformation():
     else:
         return flask.Response(response='This predictor only supports image/jpeg or image/png', status=415, mimetype='text/plain')
 
-    print('Invoked with {} records'.format(data.shape[0]))
+    custom_attr = flask.request.headers.get('X-Amzn-Sagemaker-Custom-Attributes', {})
+    if custom_attr:
+        try:
+            # expect json attributes
+            custom_attr = json.loads(custom_attr)
+        except Exception as e:
+            raise ValueError('Invalid Custom-Attributes: ' + str(e))
+    print('Invoked with {} records, custom attributes: {}'.format(data.shape[0], custom_attr))
+    feature = custom_attr.get('feature', '')
 
     # Do the prediction
-    result = ScoringService.predict(data)
+    result = ScoringService.predict(data, feature)
 
     return flask.Response(response=result, status=200, mimetype='text/plain')
