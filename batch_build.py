@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser('Build and pack model package.')
-    parser.add_argument('--parallel', type=int, default=5, help="Simultaneously build N models, be careful with RateExceed error.")
+    parser.add_argument('--parallel', type=int, default=2, help="Simultaneously build N models, be careful with RateExceed error.")
     parser.add_argument('--deploy-test', action='store_true', help="If set, deploy and test model after training")
     parser.add_argument('--cache', type=str, default='cache.pkl', help='If specified, use it to store/resume previous build')
     return parser.parse_args()
@@ -110,7 +110,7 @@ def build_image_classification_impl(model_name):
         instance_type = "ml.c4.xlarge",
         output_s3_location = 's3://{}/{}'.format(sess.default_bucket(), common_prefix))
 
-    model_package_name = "gluoncv-{}-".format(model_name.replace('_', '-')) + str(round(time.time()))
+    model_package_name = "gluoncv-{}-".format(model_name.replace('_', '-').replace('.', '-')) + str(round(time.time()))
     create_model_package_input_dict = {
         "ModelPackageName" : model_package_name,
         "ModelPackageDescription" : "Model to perform image classification or extract image features by deep learning",
