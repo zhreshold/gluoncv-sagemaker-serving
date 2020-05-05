@@ -20,19 +20,20 @@ from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser('Build and pack model package.')
-    parser.add_argument('--parallel', type=int, default=8, help="Simultaneously build N models")
+    parser.add_argument('--parallel', type=int, default=5, help="Simultaneously build N models, be careful with RateExceed error.")
     parser.add_argument('--deploy-test', action='store_true', help="If set, deploy and test model after training")
     parser.add_argument('--cache', type=str, default='cache.pkl', help='If specified, use it to store/resume previous build')
+    return parser.parse_args()
 
 args = parse_args()
 cache = []
-if args.cache:
-    with open(args.cache, 'r') as f:
+if args.cache and os.path.isfile(args.cache):
+    with open(args.cache, 'rb') as f:
         cache = pickle.load(f)
 
 def save_cache():
     if args.cache:
-        with open(args.cache, 'w') as f:
+        with open(args.cache, 'wb') as f:
             pickle.dump(cache, f)
 
 atexit.register(save_cache)
@@ -52,9 +53,9 @@ def build_image_classification(list_file):
     with open(list_file, 'rt') as f:
         models = [m.strip() for m in f.readlines()]
     build('image_classification')
-    models = [m in models if m not in cache]
-    with Pool(args.parallel) as p:
-        r = list(tqdm(p.imap(build_image_classification_impl, models)), total=len(models))
+    models = [m for m in models if m not in cache]
+    with ThreadPool(args.parallel) as p:
+        r = list(tqdm(p.imap(build_image_classification_impl, models), total=len(models)))
 
 def build_image_classification_impl(model_name):
     # role
@@ -70,9 +71,9 @@ def build_image_classification_impl(model_name):
     TRAINING_WORKDIR = "data/training"
 
     training_input = sess.upload_data(TRAINING_WORKDIR, key_prefix=training_input_prefix)
-    print ("Training Data Location " + training_input)
+    # print ("Training Data Location " + training_input)
     classifier = sage.estimator.Estimator(image,
-                           role, 1, 'ml.t2.medium',
+                           role, 1, 'ml.c4.xlarge',
                            output_path="s3://{}/output".format(sess.default_bucket()),
                            sagemaker_session=sess,
                            hyperparameters={'model_name': model_name})
@@ -88,7 +89,7 @@ def build_image_classification_impl(model_name):
         predictor = classifier.deploy(1, 'ml.m4.xlarge')
         with open('data/transform/cat1.jpg', 'rb') as f:
             x = f.read()
-            print(predictor.predict(x, initial_args={'ContentType':'image/jpeg'}).decode('utf-8'))
+            # print(predictor.predict(x, initial_args={'ContentType':'image/jpeg'}).decode('utf-8'))
         sess.delete_endpoint(predictor.endpoint)
 
     smmp = boto3.client('sagemaker', region_name=region, endpoint_url="https://sagemaker.{}.amazonaws.com".format(region))
@@ -123,9 +124,9 @@ def build_image_classification_impl(model_name):
     while True:
         response = smmp.describe_model_package(ModelPackageName=model_package_name)
         status = response["ModelPackageStatus"]
-        print (model_name, ':', status)
+        # print (model_name, ':', status)
         if (status == "Completed" or status == "Failed"):
-            print (response["ModelPackageStatusDetails"])
+            #print (response["ModelPackageStatusDetails"])
             break
         time.sleep(5)
 
