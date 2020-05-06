@@ -37,7 +37,7 @@ class ScoringService(object):
     def get_model(cls):
         """Get the model object for this instance, loading it if it's not already loaded."""
         if cls.model == None:
-            model = gcv.model_zoo.get_model(model_name)
+            model = gcv.model_zoo.get_model(model_name, pretrained_base=False)
             model.load_parameters(os.path.join(model_path, 'model.params'))
             model.hybridize()
             cls.model = model
