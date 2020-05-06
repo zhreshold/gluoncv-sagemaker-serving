@@ -55,9 +55,17 @@ def build_image_classification(list_file):
     build('image_classification')
     models = [m for m in models if m not in cache]
     with ThreadPool(args.parallel) as p:
-        r = list(tqdm(p.imap(build_image_classification_impl, models), total=len(models)))
+        r = list(tqdm(p.imap(build_model, models), total=len(models)))
 
-def build_image_classification_impl(model_name):
+def build_object_detection(list_file):
+    with open(list_file, 'rt') as f:
+        models = [m.strip() for m in f.readlines()]
+    build('object_detection')
+    models = [m for m in models if m not in cache]
+    with ThreadPool(args.parallel) as p:
+        r = list(tqdm(p.imap(build_model, models), total=len(models)))
+
+def build_model(model_name):
     # role
     common_prefix = "DEMO-gluoncv-model-zoo"
     training_input_prefix = common_prefix + "/training-input-data"
@@ -97,7 +105,7 @@ def build_image_classification_impl(model_name):
         ecr_image=image,
         supports_gpu=True,
         supported_content_types=["image/jpeg", "image/png"],
-        supported_mime_types=["text/plain"])
+        supported_mime_types=["text/plain", "application/json"])
 
     # Specify the model data resulting from the previously completed training job
     modelpackage_inference_specification["InferenceSpecification"]["Containers"][0]["ModelDataUrl"]=classifier.model_data
@@ -132,3 +140,4 @@ def build_image_classification_impl(model_name):
 
 if __name__ == '__main__':
     build_image_classification('image_classification.txt')
+    build_object_detection('object_detection.txt')
