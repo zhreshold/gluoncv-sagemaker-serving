@@ -18,12 +18,16 @@ import mxnet as mx
 from mxnet import nd
 from mxnet.gluon.data.vision import transforms
 import gluoncv as gcv
+from gluoncv.data.transforms import image as timage
 
 
 prefix = '/opt/ml/'
 model_path = os.path.join(prefix, 'model')
 artifact_file = os.path.join(model_path, 'artifact.json')
 model_name = None
+with open(artifact_file) as json_file:
+    artifact = json.load(json_file)
+    model_name = artifact['model_name']
 if not model_name:
     raise RuntimeError('Unable to determine saved model name')
 
