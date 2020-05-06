@@ -1,3 +1,2 @@
 gluoncv==0.7.0
-mxnet==1.6.0
-tqdm
+#mxnet==1.6.0

@@ -23,7 +23,7 @@ import gluoncv as gcv
 prefix = '/opt/ml/'
 model_path = os.path.join(prefix, 'model')
 artifact_file = os.path.join(model_path, 'artifact.json')
-mode_name = None
+model_name = None
 if not model_name:
     raise RuntimeError('Unable to determine saved model name')
 
