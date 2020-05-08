@@ -8,6 +8,7 @@ from multiprocessing.pool import ThreadPool
 import threading
 import pickle
 import atexit
+import functools
 
 from sagemaker import get_execution_role
 import sagemaker as sage
@@ -55,7 +56,10 @@ def build_image_classification(list_file):
     build('image_classification')
     models = [m for m in models if m not in cache]
     with ThreadPool(args.parallel) as p:
-        r = list(tqdm(p.imap(build_model, models), total=len(models)))
+        r = list(tqdm(p.imap(functools.partial(build_model,
+                                               app='image-classification',
+                                               desc=': Model to perform image classification or extract image features by deep learning'),
+                             models), total=len(models)))
 
 def build_object_detection(list_file):
     with open(list_file, 'rt') as f:
@@ -63,9 +67,12 @@ def build_object_detection(list_file):
     build('object_detection')
     models = [m for m in models if m not in cache]
     with ThreadPool(args.parallel) as p:
-        r = list(tqdm(p.imap(build_model, models), total=len(models)))
+        r = list(tqdm(p.imap(functools.partial(build_model,
+                                               app='object-detection',
+                                               desc=': Model to perform object detection by deep learning'),
+                             models), total=len(models)))
 
-def build_model(model_name):
+def build_model(model_name, app, desc):
     # role
     common_prefix = "DEMO-gluoncv-model-zoo"
     training_input_prefix = common_prefix + "/training-input-data"
@@ -75,7 +82,7 @@ def build_model(model_name):
     # create estimator
     account = sess.boto_session.client('sts').get_caller_identity()['Account']
     region = sess.boto_session.region_name
-    image = '{}.dkr.ecr.{}.amazonaws.com/gluoncv-image-classification:latest'.format(account, region)
+    image = '{}.dkr.ecr.{}.amazonaws.com/gluoncv-{}:latest'.format(account, region, app.replace('_', '-'))
     TRAINING_WORKDIR = "data/training"
 
     training_input = sess.upload_data(TRAINING_WORKDIR, key_prefix=training_input_prefix)
@@ -121,7 +128,7 @@ def build_model(model_name):
     model_package_name = "gluoncv-{}-".format(model_name.replace('_', '-').replace('.', '-')) + str(round(time.time()))
     create_model_package_input_dict = {
         "ModelPackageName" : model_package_name,
-        "ModelPackageDescription" : "Model to perform image classification or extract image features by deep learning",
+        "ModelPackageDescription" : model_name + desc,
         "CertifyForMarketplace" : True
     }
     create_model_package_input_dict.update(modelpackage_inference_specification)
