@@ -72,6 +72,17 @@ def build_object_detection(list_file):
                                                desc=': Model to perform object detection by deep learning'),
                              models), total=len(models)))
 
+def build_semantic_segmentation(list_file):
+    with open(list_file, 'rt') as f:
+        models = [m.strip() for m in f.readlines()]
+    build('semantic_segmentation')
+    models = [m for m in models if m not in cache]
+    with ThreadPool(args.parallel) as p:
+        r = list(tqdm(p.imap(functools.partial(build_model,
+                                               app='semantic-segmentation',
+                                               desc=': Model to perform semantic segmentation by deep learning'),
+                             models), total=len(models)))
+
 def build_model(model_name, app, desc):
     # role
     common_prefix = "DEMO-gluoncv-model-zoo"
@@ -148,3 +159,4 @@ def build_model(model_name, app, desc):
 if __name__ == '__main__':
     build_image_classification('image_classification.txt')
     build_object_detection('object_detection.txt')
+    build_semantic_segmentation('semantic_segmentation.txt')

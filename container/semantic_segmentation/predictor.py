@@ -52,7 +52,7 @@ class ScoringService(object):
         """For the input, do the predictions and return them.
         """
         clf = cls.get_model()
-        output = clf(input)
+        output = clf(input)[0]
         predict = mx.nd.squeeze(mx.nd.argmax(output, 1)).asnumpy().astype('int32')
         return predict
 
@@ -84,7 +84,7 @@ def transformation():
 
     if flask.request.content_type in ['image/jpeg', 'image/png']:
         raw = flask.request.data
-        data, orig_image = preprocess(raw, short=short, max_size=max_size)
+        data, orig_image = preprocess(raw)
     else:
         return flask.Response(response='This predictor only supports image data, {}'.format(flask.request.content_type), status=415, mimetype='text/plain')
 
@@ -94,6 +94,9 @@ def transformation():
     pred = ScoringService.predict(data)
 
     # Convert from output to readable text
-    result = json.dumps({'prediction': pred.tolist()})
-
+    if model_name == 'fastscnn_citys':
+        classes = ('road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky', 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicyle')
+    else:
+        classes = ScoringService.get_model().classes
+    result = json.dumps({'prediction': pred.tolist(), 'classes': classes})
     return flask.Response(response=result, status=200, mimetype='application/json')
