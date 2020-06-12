@@ -16,11 +16,7 @@ psp_resnet101_voc
 psp_resnet50_ade
 psp_resnet101_ade
 psp_resnet101_citys
-deeplab_v3b_plus_wideresnet_citys
 icnet_resnet50_citys
 icnet_resnet50_mhpv1
 deeplab_resnet50_citys
 deeplab_resnet101_citys
-fastscnn_citys
-danet_resnet50_citys
-danet_resnet101_citys

@@ -87,16 +87,16 @@ class ScoringService(object):
         clf = cls.get_model(feature)
         if feature:
             print('Customized feature extraction:', feature)
-            return np.array2string(clf(input).asnumpy(), separator=',', threshold=np.inf)
+            return {'feature': clf(input).asnumpy().tolist()}
+            # return np.array2string(clf(input).asnumpy(), separator=',', threshold=np.inf)
         pred = clf(input)
         topk = 5
         ind = nd.topk(pred, k=topk)[0].astype('int')
         scores = nd.softmax(pred)
         responses = []
         for i in range(topk):
-            responses.append('[%s], with probability %.3f.\n'%
-                  (classes[ind[i].asscalar()], scores[0][ind[i]].asscalar()))
-        return ''.join(responses)
+            responses.append('class': classes[ind[i].asscalar()], 'prob': scores[0][ind[i]].asscalar())
+        return {'prediction': responses}
 
 
 # The flask app for serving predictions
@@ -139,4 +139,4 @@ def transformation():
     # Do the prediction
     result = ScoringService.predict(data, feature)
 
-    return flask.Response(response=result, status=200, mimetype='text/plain')
+    return flask.Response(response=json.dumps(result), status=200, mimetype='application/json')
