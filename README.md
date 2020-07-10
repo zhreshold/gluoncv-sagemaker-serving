@@ -8,7 +8,7 @@ SageMaker serving for GluonCV models
 
 # Usage:
 
-The following instructions works for `SageMaker` notebook instance
+The following instructions works for `SageMaker` notebook instance(make sure ECR write permission is added in SageMaker IAM role)
 
 - First activate a `mxnet_p36` env by `source activate mxnet_p36` in a new terminal.
 - Then install required python packages: `pip install -r requirements.txt`

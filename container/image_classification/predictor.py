@@ -95,7 +95,7 @@ class ScoringService(object):
         scores = nd.softmax(pred)
         responses = []
         for i in range(topk):
-            responses.append('class': classes[ind[i].asscalar()], 'prob': scores[0][ind[i]].asscalar())
+            responses.append({'class': classes[ind[i].asscalar()], 'prob': str(scores[0][ind[i]].asscalar())})
         return {'prediction': responses}
 
 
